@@ -1,0 +1,4 @@
+github.com/thomasbruninx/crash-reporter-go v1.0.1 h1:49vkL0aWN7lFtLZRIHg2V4xFRD1DCzRMvl6Mf76jJ0k=
+github.com/thomasbruninx/crash-reporter-go v1.0.1/go.mod h1:MYF3ds6izqkPiGWXzXcL2qHwRtjXoTIysVFxQOUioMQ=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

@@ -1,0 +1,9 @@
+baseurl: http://localhost:8000
+project: my_project
+instance: ""
+token: ""
+logfile: false
+autoregister: false
+fields:
+  - host: test-machine
+  - service: web
