@@ -271,7 +271,16 @@ func postReport(cfg *Config, severity string, metadata map[string]interface{}) (
 		Metadata:     metadata,
 	}).Execute()
 	if resp != nil {
-		return resp.StatusCode, err
+		if err != nil {
+			if apiErr, ok := err.(*openapi.GenericOpenAPIError); ok {
+				body := strings.TrimSpace(string(apiErr.Body()))
+				if body != "" {
+					return resp.StatusCode, fmt.Errorf("POST report failed with status %d %s: %s", resp.StatusCode, http.StatusText(resp.StatusCode), body)
+				}
+			}
+			return resp.StatusCode, fmt.Errorf("POST report failed with status %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		}
+		return resp.StatusCode, nil
 	}
 	return 0, err
 }
