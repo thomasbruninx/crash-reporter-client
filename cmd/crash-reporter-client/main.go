@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -120,19 +121,19 @@ func main() {
 	}
 
 	logger.info("posting report")
-	err = postReport(cfg, sev, metadata)
+	statusCode, err := postReport(cfg, sev, metadata)
 	if err == nil {
 		logger.info("report posted successfully")
 		return
 	}
 
 	logger.errorf("report post failed: %v", err)
-	if cfg.AutoRegister {
-		logger.info("autoregister retry: attempting register and retry once")
+	if cfg.AutoRegister && shouldRetryWithAutoRegister(statusCode) {
+		logger.info("autoregister retry: unauthorized/forbidden response; attempting register and retry once")
 		if regErr := registerInstance(cfg, logger, cfgPath); regErr != nil {
 			fatalf(logger, "autoregister retry register failed: %v", regErr)
 		}
-		if retryErr := postReport(cfg, sev, metadata); retryErr != nil {
+		if _, retryErr := postReport(cfg, sev, metadata); retryErr != nil {
 			fatalf(logger, "report retry failed: %v", retryErr)
 		}
 		logger.info("report posted successfully after autoregister retry")
@@ -258,18 +259,27 @@ func registerInstance(cfg *Config, logger *Logger, cfgPath string) error {
 	return nil
 }
 
-func postReport(cfg *Config, severity string, metadata map[string]interface{}) error {
+func postReport(cfg *Config, severity string, metadata map[string]interface{}) (int, error) {
 	clientCfg := openapi.NewConfiguration()
 	clientCfg.Servers = openapi.ServerConfigurations{{URL: strings.TrimRight(cfg.BaseURL, "/")}}
 	api := openapi.NewAPIClient(clientCfg)
 
 	ctx := context.WithValue(context.Background(), openapi.ContextAccessToken, cfg.Token)
-	_, _, err := api.DefaultAPI.CreateReportApiV1ReportPost(ctx).ReportCreate(openapi.ReportCreate{
+	_, resp, err := api.DefaultAPI.CreateReportApiV1ReportPost(ctx).ReportCreate(openapi.ReportCreate{
 		InstanceUuid: cfg.Instance,
 		Severity:     severity,
 		Metadata:     metadata,
 	}).Execute()
-	return err
+	if resp != nil {
+		return resp.StatusCode, err
+	}
+	return 0, err
+}
+
+func shouldRetryWithAutoRegister(statusCode int) bool {
+	return statusCode == http.StatusUnauthorized ||
+		statusCode == http.StatusForbidden ||
+		statusCode == http.StatusNotFound
 }
 
 func isSeverity(s string) bool {
